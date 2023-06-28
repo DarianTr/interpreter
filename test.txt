@@ -1,0 +1,14 @@
+add 1
+sub -1
+div a ;asdfasdf
+end
+;test
+1
+1 test
+1,0 test
+1.0 test
+1 add
+add sub
+add syb 1
+sub 1
+
