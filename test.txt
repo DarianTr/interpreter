@@ -1,6 +1,6 @@
-add a1
+add a
 add 1
 sub -1
 div a ;asdfasdf
 end
-;test
+
