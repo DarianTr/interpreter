@@ -92,8 +92,9 @@ pub fn parser(file: String) -> Vec<Vec<Token>> {
             };
         }
         if let Some(word) = words.next() {
-            match word.as_bytes()[0] {
-                48..=57 => {
+            let chars: Vec<char> = word.chars().collect();
+            match chars[0] {
+                '0'..='9' => {
                     for byte in word.as_bytes() {
                         if *byte < 48 || *byte > 57 {
                             println!("{:?}", byte);
@@ -102,7 +103,7 @@ pub fn parser(file: String) -> Vec<Vec<Token>> {
                     }
                     line_output.push(Token::Number(word.parse::<i32>().unwrap()))
                 }
-                45 => {
+                '-' => {
                     for byte in &word.as_bytes()[1..word.as_bytes().len()] {
                         if *byte < 48 || *byte > 57 {
                             println!("{:?}", word.as_bytes());
@@ -111,7 +112,7 @@ pub fn parser(file: String) -> Vec<Vec<Token>> {
                     }
                     line_output.push(Token::Number(word.parse::<i32>().unwrap()))
                 } // negative
-                97..=122 => {
+                'a'..='z' => {
                     if word.as_bytes().len() > 1 {
                         println!("{:?}", word.as_bytes());
                         panic!("An address has only one letter");
