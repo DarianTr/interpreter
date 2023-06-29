@@ -1,8 +1,16 @@
+use snafu::prelude::*;
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
 use std::str::{self, from_utf8};
 use std::vec;
+
+#[derive(Debug, Snafu)]
+#[snafu(display("Error in line {line}: {msg}"))]
+pub struct ParseError {
+    msg: String,
+    line: usize,
+}
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Token {
@@ -59,9 +67,10 @@ fn check_comment(line: &str) -> String {
     from_utf8(&bytes).unwrap().trim_end().to_owned()
 }
 
-pub fn parser(file: String) -> Vec<Vec<Token>> {
+pub fn parser(file: String) -> Result<Vec<Vec<Token>>, ParseError> {
     let mut output = vec![];
     let lines = read_file(file);
+    let mut line_counter: usize = 0;
     for mut line in lines {
         line = check_comment(&line);
         if line == "" {
@@ -87,7 +96,10 @@ pub fn parser(file: String) -> Vec<Vec<Token>> {
                 "jgt" => line_output.push(Token::Jgt),
                 "end" => line_output.push(Token::End),
                 _ => {
-                    panic!("unknown function \"{word}\"")
+                    return Err(ParseError {
+                        msg: format!("Unknown function {word}").to_string(),
+                        line: line_counter,
+                    })
                 }
             };
         }
@@ -96,47 +108,67 @@ pub fn parser(file: String) -> Vec<Vec<Token>> {
             match chars[0] {
                 '0'..='9' => {
                     for byte in word.as_bytes() {
-                        if *byte < 48 || *byte > 57 {
-                            println!("{:?}", byte);
-                            panic!("A parameter can only be a letter or a number");
-                        }
+                        ensure!(
+                            (*byte >= 48 && *byte <= 57),
+                            ParseSnafu {
+                                msg: "A parameter can only be a letter or a number".to_string(),
+                                line: line_counter,
+                            }
+                        );
                     }
-                    line_output.push(Token::Number(word.parse::<i32>().unwrap()))
+                    line_output.push(Token::Number(word.parse::<i32>().unwrap()));
                 }
                 '-' => {
                     for byte in &word.as_bytes()[1..word.as_bytes().len()] {
-                        if *byte < 48 || *byte > 57 {
-                            println!("{:?}", word.as_bytes());
-                            panic!("A parameter can only be a letter or a number");
-                        }
+                        ensure!(
+                            *byte >= 48 || *byte <= 57,
+                            ParseSnafu {
+                                msg: "A parameter can only be a letter or a number".to_string(),
+                                line: line_counter,
+                            }
+                        );
                     }
-                    line_output.push(Token::Number(word.parse::<i32>().unwrap()))
-                } // negative
+                    line_output.push(Token::Number(word.parse::<i32>().unwrap()));
+                }
                 'a'..='z' => {
-                    if word.as_bytes().len() > 1 {
-                        println!("{:?}", word.as_bytes());
-                        panic!("An address has only one letter");
-                    }
-                    line_output.push(Token::Address(word.as_bytes()[0] as char))
+                    ensure!(
+                        word.as_bytes().len() <= 1,
+                        ParseSnafu {
+                            msg: "An address has only one letter".to_string(),
+                            line: line_counter,
+                        }
+                    );
+                    line_output.push(Token::Address(word.as_bytes()[0] as char));
                 }
-                _ => {
-                    panic!("This parameter has to be a number or a letter")
-                }
+                _ => return Err(ParseError {
+                    msg: "This parameter has to be a letter or a number".to_string(),
+                    line: line_counter,
+                }),
             };
         }
         if let Some(_) = words.next() {
-            panic! {"A function has only one parameter but 2 were given"}
+            return Err(ParseError {
+                msg: "A function has only one parameter but 2 were given".to_string(),
+                line: line_counter,
+            })
         }
         output.push(line_output);
+        line_counter += 1;
     }
     if output[output.len() - 1] == vec![Token::End] {
         for line in output[0..output.len() - 1].iter() {
             if line.contains(&Token::End) {
-                panic!("Multiple \"end\"s are not allowed")
+                return Err(ParseError {
+                    msg: "Multiple \"end\"s are not allowed".to_string(),
+                    line: line_counter,
+                })
             }
         }
-        output
+        Ok(output)
     } else {
-        panic!("The program has to end with \"end\"");
+        return Err(ParseError {
+            msg: "The program has to end with an \"end\"".to_string(),
+            line: line_counter,
+        })
     }
 }
