@@ -140,17 +140,19 @@ pub fn parser(file: String) -> Result<Vec<Vec<Token>>, ParseError> {
                     );
                     line_output.push(Token::Address(word.as_bytes()[0] as char));
                 }
-                _ => return Err(ParseError {
-                    msg: "This parameter has to be a letter or a number".to_string(),
-                    line: line_counter,
-                }),
+                _ => {
+                    return Err(ParseError {
+                        msg: "This parameter has to be a letter or a number".to_string(),
+                        line: line_counter,
+                    })
+                }
             };
         }
         if let Some(_) = words.next() {
             return Err(ParseError {
                 msg: "A function has only one parameter but 2 were given".to_string(),
                 line: line_counter,
-            })
+            });
         }
         output.push(line_output);
         line_counter += 1;
@@ -161,7 +163,7 @@ pub fn parser(file: String) -> Result<Vec<Vec<Token>>, ParseError> {
                 return Err(ParseError {
                     msg: "Multiple \"end\"s are not allowed".to_string(),
                     line: line_counter,
-                })
+                });
             }
         }
         Ok(output)
@@ -169,6 +171,6 @@ pub fn parser(file: String) -> Result<Vec<Vec<Token>>, ParseError> {
         return Err(ParseError {
             msg: "The program has to end with an \"end\"".to_string(),
             line: line_counter,
-        })
+        });
     }
 }

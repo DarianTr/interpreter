@@ -1,6 +1,32 @@
-add a
+in a
+in b
+st c
+ld d
+mul 20
+add c
+mul c
+cmp a
+jgt 13
+st h
+ld c
 add 1
-sub -1
-div a ;asdfasdf
+jmp 2
+ld c
+sub 1
+st c
+ld d
+mul 10
+add c
+st d
+cmp 100
+jgt 30
+ld a
+sub h
+mul 100
+add b
+st a
+ld 0
+st b
+jmp 2
+out d
 end
-
