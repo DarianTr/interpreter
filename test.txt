@@ -1,17 +1,17 @@
 in a
 in b
-st c
+st c :rechnen
 ld d
 mul 20
 add c
 mul c
 cmp a
-jgt 13
+jgt weiter
 st h
 ld c
 add 1
-jmp 2
-ld c
+jmp rechnen
+ld c :weiter
 sub 1
 st c
 ld d
@@ -19,7 +19,7 @@ mul 10
 add c
 st d
 cmp 100
-jgt 30
+jgt ende
 ld a
 sub h
 mul 100
@@ -27,6 +27,6 @@ add b
 st a
 ld 0
 st b
-jmp 2
-out d
+jmp rechnen
+out d :ende
 end

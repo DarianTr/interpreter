@@ -10,10 +10,18 @@ struct Args {
 }
 fn main() {
     let args = Args::parse();
-    println!("{:?}", args);
     let x = parser::parser(args.file);
-    println!("{:?}", x);
-    if let Ok(input) = x {
-        runtime::run(input);
+    match x {
+        Ok(input) => {
+            let result = runtime::run(input.0, input.1);
+            match result {
+                Ok(_) => {}
+                Err(e) => println!(
+                    "An error occured while running in Line {:?}: {:?}",
+                    e.line, e.msg
+                ),
+            }
+        }
+        Err(e) => println!("Error in Line {:?}: {:?}", e.line, e.msg),
     }
 }

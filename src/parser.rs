@@ -6,10 +6,15 @@ use std::str::{self, from_utf8};
 use std::vec;
 
 #[derive(Debug, Snafu)]
-#[snafu(display("Error in line {line}: {msg}"))]
 pub struct ParseError {
-    msg: String,
-    line: usize,
+    pub msg: String,
+    pub line: usize,
+}
+
+#[derive(PartialEq, Eq, Debug)]
+pub struct Jumpmark {
+    pub name: String,
+    pub line: usize,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -31,6 +36,8 @@ pub enum Token {
     End,
     Number(i32),
     Address(char),
+    Jumpmark(Jumpmark),
+    JumpMarkTo(String),
 }
 
 fn read_file(file: String) -> Vec<String> {
@@ -67,10 +74,11 @@ fn check_comment(line: &str) -> String {
     from_utf8(&bytes).unwrap().trim_end().to_owned()
 }
 
-pub fn parser(file: String) -> Result<Vec<Vec<Token>>, ParseError> {
+pub fn parser(file: String) -> Result<(Vec<Vec<Token>>, Vec<Token>), ParseError> {
     let mut output = vec![];
     let lines = read_file(file);
     let mut line_counter: usize = 0;
+    let mut jumpmarks: Vec<Token> = vec![];
     for mut line in lines {
         line = check_comment(&line);
         if line == "" {
@@ -94,10 +102,14 @@ pub fn parser(file: String) -> Result<Vec<Vec<Token>>, ParseError> {
                 "jlt" => line_output.push(Token::Jlt),
                 "jeq" => line_output.push(Token::Jeq),
                 "jgt" => line_output.push(Token::Jgt),
-                "end" => line_output.push(Token::End),
+                "end" => {
+                    line_output.push(Token::End);
+                    output.push(line_output);
+                    continue;
+                }
                 _ => {
                     return Err(ParseError {
-                        msg: format!("Unknown function {word}").to_string(),
+                        msg: format!("Unknown function {}", word).to_string(),
                         line: line_counter,
                     })
                 }
@@ -131,15 +143,21 @@ pub fn parser(file: String) -> Result<Vec<Vec<Token>>, ParseError> {
                     line_output.push(Token::Number(word.parse::<i32>().unwrap()));
                 }
                 'a'..='z' => {
-                    ensure!(
-                        word.as_bytes().len() <= 1,
-                        ParseSnafu {
-                            msg: "An address has only one letter".to_string(),
-                            line: line_counter,
+                    match word.as_bytes().len() {
+                        2..=usize::MAX => line_output.push(Token::JumpMarkTo(word.to_owned())),
+                        1 => line_output.push(Token::Address(word.as_bytes()[0] as char)),
+                        _ => {
+                            return Err(ParseError {
+                                msg: "Something went horribly wrong".to_owned(),
+                                line: line_counter,
+                            })
                         }
-                    );
-                    line_output.push(Token::Address(word.as_bytes()[0] as char));
+                    };
                 }
+                ':' => jumpmarks.push(Token::Jumpmark(Jumpmark {
+                    name: chars[1..].iter().collect::<String>(),
+                    line: line_counter,
+                })),
                 _ => {
                     return Err(ParseError {
                         msg: "This parameter has to be a letter or a number".to_string(),
@@ -147,12 +165,26 @@ pub fn parser(file: String) -> Result<Vec<Vec<Token>>, ParseError> {
                     })
                 }
             };
-        }
-        if let Some(_) = words.next() {
+        } else {
             return Err(ParseError {
-                msg: "A function has only one parameter but 2 were given".to_string(),
+                msg: format!("A function needs one parameter"),
                 line: line_counter,
             });
+        }
+        if let Some(j) = words.next() {
+            let chars: Vec<char> = j.chars().collect();
+            match chars[0] {
+                ':' => jumpmarks.push(Token::Jumpmark(Jumpmark {
+                    name: chars[1..].iter().collect::<String>(),
+                    line: line_counter,
+                })),
+                _ => {
+                    return Err(ParseError {
+                        msg: "A function has only one parameter but 2 were given".to_string(),
+                        line: line_counter,
+                    })
+                }
+            }
         }
         output.push(line_output);
         line_counter += 1;
@@ -161,15 +193,15 @@ pub fn parser(file: String) -> Result<Vec<Vec<Token>>, ParseError> {
         for line in output[0..output.len() - 1].iter() {
             if line.contains(&Token::End) {
                 return Err(ParseError {
-                    msg: "Multiple \"end\"s are not allowed".to_string(),
+                    msg: format!("Multiple ends are not allowed"),
                     line: line_counter,
                 });
             }
         }
-        Ok(output)
+        Ok((output, jumpmarks))
     } else {
         return Err(ParseError {
-            msg: "The program has to end with an \"end\"".to_string(),
+            msg: format!("The program has to end with an end"),
             line: line_counter,
         });
     }
