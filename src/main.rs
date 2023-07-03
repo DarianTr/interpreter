@@ -13,6 +13,7 @@ fn main() {
     let x = parser::parser(args.file);
     match x {
         Ok(input) => {
+            println!("{:?}", input);
             let result = runtime::run(input.0, input.1);
             match result {
                 Ok(_) => {}

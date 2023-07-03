@@ -1,7 +1,8 @@
-use crate::parser::*;
+use crate::parser::syntax_checker::Token;
+use crate::parser::syntax_checker::Token::*;
 use snafu::prelude::*;
 use text_io::*;
-use Token::*;
+
 
 #[derive(Debug, Snafu)]
 pub struct RuntimeError {
@@ -166,7 +167,7 @@ fn input(token: &Token, virtual_memory: &mut Vec<i32>, pc: &usize) -> Result<(),
         }
         _ => {
             return Err(RuntimeError {
-                msg: format!("the command \"In\" needs an address as parameter"),
+                msg: format!("the command In needs an address as parameter"),
                 line: *pc,
             })
         }
