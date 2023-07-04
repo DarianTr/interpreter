@@ -13,7 +13,7 @@ add 1
 jmp rechnen
 ld c :weiter
 sub 1
-st xsc
+st c
 ld d
 mul 10
 add c

@@ -12,9 +12,8 @@ fn main() {
     let args = Args::parse();
     let x = parser::parser(args.file);
     match x {
-        Ok(input) => {
-            println!("{:?}", input);
-            let result = runtime::run(input.0, input.1);
+        Ok(mut input) => {
+            let result = runtime::run(&mut input);
             match result {
                 Ok(_) => {}
                 Err(e) => println!(
